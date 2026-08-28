@@ -4,17 +4,19 @@ from psycopg2.extras import RealDictCursor
 from fastapi import Depends
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+import os
+from dotenv import load_dotenv
 
+load_dotenv()
 
 app=FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],  # your Vite dev URL
+    allow_origins=["http://localhost:5173"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
 
 class Projects(BaseModel):
     title:str
@@ -25,7 +27,6 @@ class Projects(BaseModel):
     video_url:str
     featured:bool
 
-
 class Inquiries(BaseModel):
     full_name: str
     email: str
@@ -34,13 +35,7 @@ class Inquiries(BaseModel):
     
 
 def get_db():
-    conn=psycopg2.connect(
-        host="localhost",
-        database="mydb",
-        user="postgres",
-        password="5225"
-    )
-
+    conn=psycopg2.connect(os.environ.get("DATABASE_URL"))
     cursor=conn.cursor(cursor_factory=RealDictCursor)
     try:
         yield cursor
@@ -53,14 +48,8 @@ def get_projects(cursor= Depends(get_db)):
     results=cursor.fetchall()
     return results
 
-
 @app.post("/inquiries")
 def create_project(inquiry:Inquiries,cursor= Depends(get_db)):
     cursor.execute("INSERT INTO inquiries(full_name,email,subject,message_body) VALUES (%s,%s,%s,%s)",(inquiry.full_name,inquiry.email,inquiry.subject,inquiry.message_body))
     cursor.connection.commit()
     return{"message":"project added successfully"}
-
-
-
-
-    
